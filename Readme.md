@@ -1,7 +1,7 @@
-📖 Autonomous Book Generation Engine
+***Autonomous Book Generation Engine***
 This system is an end-to-end, state-driven orchestration engine that automates the research, outlining, and drafting of full-length books. It uses Google Sheets as a lightweight frontend, Supabase for robust state management, and Groq's Compound AI (Research + Generation) for high-speed, fact-checked writing.
-
-🚀 Features
+![Autonomous Book Generation Pipeline](./architecture_diagram.png)
+**Features**
 Google Sheets Sync: Bi-directional syncing allows editors to request books, review AI outputs, and approve text directly from a spreadsheet.
 
 Agentic Research & Generation: Uses the Groq compound model to natively search the web, verify facts, and write comprehensive chapters without manual tool-calling.
@@ -12,7 +12,7 @@ Automated Email Alerts: Sends Gmail SMTP notifications to assigned editors when 
 
 DOCX Compilation: Automatically stitches approved chapters into a styled, downloadable Word document.
 
-🏗️ Project Structure
+**Project Structure**
 Plaintext
 book_gen_system/
 ├── core/
@@ -28,7 +28,7 @@ book_gen_system/
 ├── .env                  # Secrets and API keys
 ├── service_account.json  # Google Cloud Service Account credentials
 └── main.py               # The Orchestrator / State Machine Loop
-🛠️ Setup & Prerequisites
+**Setup & Prerequisites**
 1. Environment Variables (.env)
 Create a .env file in the root directory with the following keys:
 
@@ -109,7 +109,7 @@ pending_generation: Triggered automatically for Chapter 1, then Chapter 2, etc. 
 
 completed: All chapters are approved. The system compiles the .docx file and sends the final email.
 
-▶️ Running the System
+**Running the System**
 Install dependencies:
 
 Bash
