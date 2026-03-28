@@ -61,6 +61,44 @@ def get_sheets_service():
     creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE, scopes=SCOPES)
     return build('sheets', 'v4', credentials=creds)
 
+def sync_chapters_to_sheets():
+    """Pushes generated chapter content to the 'Chapters' tab."""
+    try:
+        supabase = get_supabase_client()
+        service = get_sheets_service()
+        sheet = service.spreadsheets()
+
+        # Fetch all chapters marked 'review_required' or 'completed'
+        db_chapters = supabase.table("chapters").select("book_id, chapter_number, title, content, status").execute().data
+        
+        if not db_chapters: return
+
+        # Prepare data for the 'Chapters' Tab
+        # Columns: Book ID, Chapter #, Title, Content, Status
+        values = [["Book ID", "Chapter #", "Title", "Content", "Status"]] # Header
+        for ch in db_chapters:
+            values.append([
+                ch['book_id'], 
+                ch['chapter_number'], 
+                ch['title'], 
+                ch['content'][:5000], # GSheets cell limit is ~50k, 5k is safe for preview
+                ch['status']
+            ])
+
+        # Overwrite the Chapters sheet with the latest data
+        body = {'values': values}
+        sheet.values().update(
+            spreadsheetId=SPREADSHEET_ID,
+            range="Chapters!A1", 
+            valueInputOption="USER_ENTERED",
+            body=body
+        ).execute()
+        
+        logger.info("Chapters tab synced successfully.")
+    except Exception as e:
+        logger.error(f"Chapter sync failed: {e}")
+        
+
 def sync_new_books_to_db():
     """Pulls new books from Google Sheets and writes back the Supabase UUID."""
     service = get_sheets_service()
