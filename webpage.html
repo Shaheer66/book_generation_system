@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Groq Book Engine Pipeline</title>
+    <style>
+        :root {
+            --primary: #00f2fe;
+            --secondary: #4facfe;
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f8fafc;
+            --accent: #22c55e;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        .pipeline {
+            display: flex;
+            gap: 20px;
+            max-width: 1200px;
+            width: 100%;
+            justify-content: space-between;
+        }
+        .step {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 12px;
+            flex: 1;
+            border: 1px solid #334155;
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+        .step:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+        }
+        .step-num {
+            background: var(--primary);
+            color: var(--bg);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        h3 { color: var(--primary); margin-top: 0; }
+        ul { padding-left: 20px; font-size: 0.9rem; line-height: 1.6; }
+        .tech-stack {
+            margin-top: 50px;
+            display: flex;
+            gap: 30px;
+            opacity: 0.7;
+        }
+        .badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--secondary);
+            font-size: 0.8rem;
+        }
+        .hitl-badge {
+            background: var(--accent);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Autonomous Book Generation Engine</h1>
+        <p>Powered by Groq Compound AI & Supabase Orchestration</p>
+    </div>
+
+    <div class="pipeline">
+        <div class="step">
+            <div class="step-num">1</div>
+            <h3>Input Layer</h3>
+            <p>User initiates the process via <b>Google Sheets</b>.</p>
+            <ul>
+                <li>Book Title Entry</li>
+                <li>Pre-outline Notes</li>
+                <li>Editor Assignment</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <div class="step-num">2</div>
+            <h3>Research AI</h3>
+            <span class="hitl-badge">Human Review Needed</span>
+            <p>Groq Compound model executes:</p>
+            <ul>
+                <li>Live Web Research</li>
+                <li>Fact Verification</li>
+                <li>Detailed Markdown Outline</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <div class="step-num">3</div>
+            <h3>Orchestration</h3>
+            <p>Supabase acts as the State Machine.</p>
+            <ul>
+                <li>Syncs Data to DB</li>
+                <li>Atomizes Chapters</li>
+                <li>Triggers Python Loop</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <div class="step-num">4</div>
+            <h3>Writer Agent</h3>
+            <p>Sequential chapter generation.</p>
+            <ul>
+                <li>Rolling Context Memory</li>
+                <li>Auto-Summarization</li>
+                <li>Style Consistency</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <div class="step-num">5</div>
+            <h3>Final Export</h3>
+            <p>Automated Delivery Pipeline.</p>
+            <ul>
+                <li>Email Notifications</li>
+                <li><b>.DOCX</b> Compilation</li>
+                <li>Local Archive Storage</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="tech-stack">
+        <div class="badge">GROQ LPU</div>
+        <div class="badge">SUPABASE DB</div>
+        <div class="badge">GOOGLE SHEETS API</div>
+        <div class="badge">PYTHON SMTP</div>
+    </div>
+
+</body>
+</html>
