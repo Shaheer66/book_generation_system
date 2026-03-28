@@ -3,126 +3,97 @@ import time
 import logging
 from dotenv import load_dotenv
 
-# Import our custom modules
 from core.database import get_supabase_client
 from core.llm_compound import BookCompoundAI
-# Assuming you will create these based on our structure:
-# from core.mailer import send_notification 
-# from sync.sheet_sync import sync_new_books_to_db, sync_db_to_sheets
-# from services.compiler_svc import compile_to_docx
+from core.mailer import send_notification
+from sync.sheet_sync import sync_new_books_to_db, sync_db_to_sheets
+from services.outline_svc import parse_and_seed_chapters
 
-# Production Logging Setup
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("BookOrchestrator")
 
 load_dotenv()
 
 class BookOrchestrator:
     def __init__(self):
-        logger.info("Initializing Book Orchestrator...")
         self.db = get_supabase_client()
         self.ai = BookCompoundAI()
-        self.poll_interval = 30 # Seconds between checks
+        self.poll_interval = 30
+        self.admin_email = os.getenv("ADMIN_EMAIL", "admin@example.com")
 
-    def process_outlines(self):
-        """Find books waiting for an outline and generate them."""
+    def process_new_outlines(self):
         response = self.db.table("books").select("*").eq("status", "drafting_outline").execute()
-        books = response.data
-
-        for book in books:
-            logger.info(f"Generating outline for Book: {book['title']}")
+        
+        for book in response.data:
+            logger.info(f"Generating outline for: {book['title']}")
             try:
-                prompt = f"Title: {book['title']}\nNotes: {book['pre_outline_notes']}\nTask: Generate a detailed, chapter-by-chapter outline."
-                outline_content = self.ai.generate_with_research(
-                    system_role="You are a Master Book Architect.",
-                    user_prompt=prompt
-                )
+                prompt = f"Title: {book['title']}\nNotes: {book.get('pre_outline_notes', '')}\nTask: Generate a detailed, chapter-by-chapter outline in Markdown."
+                outline_content = self.ai.generate_with_research("You are a Master Book Architect.", prompt)
 
-                # Update DB: We temporarily store outline in 'pre_outline_notes' or a new column if you added it, 
-                # but let's assume you added 'outline_content' based on our sheet sync discussion.
                 self.db.table("books").update({
                     "status": "review_required",
-                    # "outline_content": outline_content # Uncomment if column exists in DB
+                    "outline_content": outline_content
                 }).eq("id", book['id']).execute()
 
-                # Notify Editor
-                # send_notification(to="editor@example.com", subject=f"Outline Ready: {book['title']}", body="Please review in Google Sheets.")
-                logger.info(f"Outline complete for {book['title']}. Awaiting review.")
-
+                email_target = book.get('editor_email', self.admin_email)
+                send_notification(email_target, f"Outline Ready: {book['title']}", "Review in Google Sheets and mark as 'approved' to proceed.")
             except Exception as e:
-                logger.error(f"Failed to generate outline for {book['title']}: {e}")
+                logger.error(f"Outline generation failed for {book['title']}: {e}")
 
-    def process_chapters(self):
-        """Find chapters marked for generation and write them using past context."""
+    def process_approved_outlines(self):
+        response = self.db.table("books").select("*").eq("status", "approved").execute()
+        
+        for book in response.data:
+            logger.info(f"Seeding chapters for approved book: {book['title']}")
+            try:
+                success = parse_and_seed_chapters(book['id'], book['outline_content'], book.get('editor_email', self.admin_email))
+                if not success:
+                    self.db.table("books").update({"status": "outline_parsing_failed"}).eq("id", book['id']).execute()
+            except Exception as e:
+                logger.error(f"Chapter seeding failed for {book['title']}: {e}")
+
+    def process_pending_chapters(self):
         response = self.db.table("chapters").select("*").eq("status", "pending_generation").execute()
-        chapters = response.data
-
-        for chapter in chapters:
+        
+        for chapter in response.data:
             logger.info(f"Generating Chapter {chapter['chapter_number']} for Book ID: {chapter['book_id']}")
             try:
-                # 1. Fetch Context (Previous Summaries)
                 prev_chapters = self.db.table("chapters").select("summary")\
                     .eq("book_id", chapter['book_id'])\
                     .lt("chapter_number", chapter['chapter_number']).order("chapter_number").execute()
                 
                 context = "\n".join([c['summary'] for c in prev_chapters.data if c.get('summary')])
 
-                # 2. Build Prompt
-                prompt = f"""
-                Chapter Title: {chapter['title']}
-                Previous Story Context: {context}
-                Editor Notes for this iteration: {chapter.get('editor_notes', 'None')}
-                Task: Write the full chapter content.
-                """
-
-                # 3. Generate Content
+                prompt = f"Chapter Title: {chapter['title']}\nPrevious Context: {context}\nEditor Notes: {chapter.get('editor_notes', 'None')}\nTask: Write the full chapter."
                 content = self.ai.generate_with_research("You are an expert author.", prompt)
                 
-                # 4. Generate Summary (for next chapter's context)
-                summary = self.ai.generate_with_research(
-                    "You are a summarizer.", 
-                    f"Summarize this chapter in 200 words focusing on plot progression: {content}"
-                )
+                summary = self.ai.generate_with_research("You are a summarizer.", f"Summarize this chapter in 200 words: {content}")
 
-                # 5. Update DB
                 self.db.table("chapters").update({
                     "content": content,
                     "summary": summary,
                     "status": "review_required"
                 }).eq("id", chapter['id']).execute()
 
-                # Notify Editor
-                # send_notification(to="editor@example.com", subject=f"Chapter {chapter['chapter_number']} Ready", body="Review required.")
-                logger.info(f"Chapter {chapter['chapter_number']} completed.")
-
+                email_target = chapter.get('editor_email', self.admin_email)
+                send_notification(email_target, f"Chapter {chapter['chapter_number']} Ready", f"Chapter '{chapter['title']}' is ready for review in Google Sheets.")
             except Exception as e:
-                logger.error(f"Failed to generate chapter {chapter['id']}: {e}")
+                logger.error(f"Chapter generation failed for ID {chapter['id']}: {e}")
 
     def run(self):
-        """Main Loop: Syncs, Processes, and Sleeps."""
         logger.info("Starting Orchestrator Loop...")
         while True:
             try:
-                # 1. Pull new inputs from Google Sheets to Supabase
-                # sync_new_books_to_db()
-
-                # 2. Process AI Tasks
-                self.process_outlines()
-                self.process_chapters()
-
-                # 3. Push updated statuses/content back to Google Sheets
-                # sync_db_to_sheets()
-
-                # 4. Check for Final Compilation
-                # check_and_compile_books()
-
+                sync_new_books_to_db()
+                
+                self.process_new_outlines()
+                self.process_approved_outlines()
+                self.process_pending_chapters()
+                
+                sync_db_to_sheets()
             except Exception as e:
-                logger.error(f"Critical error in main loop: {e}")
+                logger.error(f"Critical orchestrator error: {e}")
             
-            # Sleep to prevent rate limiting / high CPU usage
             time.sleep(self.poll_interval)
 
 if __name__ == "__main__":

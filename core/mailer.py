@@ -14,7 +14,7 @@ def send_notification(to_email: str, subject: str, body: str):
     smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
     smtp_port = int(os.getenv("SMTP_PORT", 587))
     smtp_user = os.getenv("SMTP_USER")
-    smtp_password = os.getenv("SMTP_PASSWORD")
+    smtp_password = os.getenv("SMTP_PASS")
 
     if not all([smtp_user, smtp_password, to_email]):
         logger.error("Email credentials or recipient missing. Skipping notification.")
