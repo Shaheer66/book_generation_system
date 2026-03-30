@@ -14,9 +14,22 @@ class BookCompoundAI:
         """
         completion = self.client.chat.completions.create(
             model=self.model,
-            messages=[
-                {"role": "system", "content": f"{system_role}. Use your research capabilities to verify all facts."},
-                {"role": "user", "content": user_prompt}
+           messages=[
+                {
+                    "role": "system", 
+                    "content": (
+                        f"{system_role}. "
+                        "MODE: Rapid Prototype Testing. "
+                        "RESEARCH: Minimal (max 1-2 sources). "
+                        "OUTPUT STRUCTURE: Strictly 2-3 sentences per chapter. "
+                        "NO fluff, NO detailed explanations, NO long introductions. "
+                        "Goal is to verify the pipeline flow, not content quality."
+                    )
+                },
+                {
+                    "role": "user", 
+                    "content": f"Topic: {user_prompt}. Generate a 5-chapter outline. Each chapter description must be exactly 2 lines long."
+                }
             ],
             temperature=0.6 # Lower temperature for better factual consistency
         )

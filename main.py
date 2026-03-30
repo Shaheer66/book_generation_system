@@ -33,7 +33,14 @@ class BookOrchestrator:
         for book in response.data:
             logger.info(f"Generating outline for: {book['title']}")
             try:
-                prompt = f"Title: {book['title']}\nNotes: {book.get('pre_outline_notes', '')}\nTask: Generate a detailed, chapter-by-chapter outline in Markdown."
+                #prompt = f"Title: {book['title']}\nNotes: {book.get('pre_outline_notes', '')}\nTask: Generate a detailed, chapter-by-chapter outline in Markdown."
+                # Change 'detailed' to 'brief' and set a strict limit
+                prompt = (
+                    f"Title: {book['title']}\n"
+                    f"Notes: {book.get('pre_outline_notes', '')}\n"
+                    "Task: Generate a brief 5-chapter outline in Markdown. "
+                    "Limit: 2 sentences per chapter max."
+                )
                 outline_content = self.ai.generate_with_research("You are a Master Book Architect.", prompt)
 
                 self.db.table("books").update({
